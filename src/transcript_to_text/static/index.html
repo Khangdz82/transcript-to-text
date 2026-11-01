@@ -3,24 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transcript to Text - Bóc tách Video / YouTube thành Text siêu chuẩn</title>
+  <title>Transcript to Text - Bóc tách Video & YouTube thành Text</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #090d16;
-      --surface: #121826;
-      --surface-hover: #1b2337;
-      --border: #232d42;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --accent: #0ea5e9;
-      --accent-hover: #0284c7;
-      --accent-glow: rgba(14, 165, 233, 0.15);
+      --bg: #0b0f19;
+      --bg-elevated: #111827;
+      --surface: #151e32;
+      --surface-hover: #1c2742;
+      --surface-active: #223052;
+      --border: #243049;
+      --border-focus: #3b82f6;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-light: rgba(37, 99, 235, 0.12);
+      --accent-glow: rgba(59, 130, 246, 0.25);
       --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
       --danger: #ef4444;
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 16px;
-      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
 
     * {
@@ -38,299 +50,638 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 32px 16px;
+      padding: 32px 16px 48px;
+      -webkit-font-smoothing: antialiased;
     }
 
     .container {
       width: 100%;
-      max-width: 920px;
+      max-width: 960px;
       display: flex;
       flex-direction: column;
       gap: 24px;
     }
 
+    /* Top Bar / Brand */
     header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
-      margin-bottom: 8px;
+      gap: 8px;
+      margin-bottom: 4px;
     }
 
-    .badge {
+    .brand-mark {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 12px;
+      gap: 8px;
+      padding: 6px 14px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 999px;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 12px;
-    }
-
-    h1 {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--text);
+      color: var(--text-muted);
       margin-bottom: 6px;
     }
 
-    .subtitle {
-      color: var(--muted);
-      font-size: 15px;
+    .brand-mark .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
     }
 
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 600px;
+    }
+
+    /* Card */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 24px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      padding: 28px;
+      box-shadow: var(--shadow-card);
+      position: relative;
     }
 
-    .tabs {
+    /* Segmented Control Tabs */
+    .tab-nav {
       display: flex;
-      gap: 8px;
       background: var(--bg);
-      padding: 4px;
+      padding: 5px;
       border-radius: var(--radius-md);
-      margin-bottom: 20px;
+      gap: 6px;
       border: 1px solid var(--border);
+      margin-bottom: 24px;
     }
 
     .tab-btn {
       flex: 1;
-      padding: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 18px;
       font-size: 14px;
       font-weight: 600;
-      color: var(--muted);
+      color: var(--text-muted);
       background: transparent;
       border: none;
       border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.18s ease;
+      font-family: inherit;
+    }
+
+    .tab-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2;
     }
 
     .tab-btn.active {
       color: var(--text);
       background: var(--surface);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
-    .tab-content {
+    .tab-pane {
       display: none;
     }
 
-    .tab-content.active {
+    .tab-pane.active {
       display: block;
     }
 
-    .input-group {
-      margin-bottom: 16px;
+    /* Form Fields */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
     }
 
     label {
-      display: block;
       font-size: 13px;
       font-weight: 600;
       color: var(--text);
-      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    input[type="text"], select {
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      color: var(--text-dim);
+      pointer-events: none;
+      display: flex;
+    }
+
+    .input-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    input[type="text"] {
       width: 100%;
-      padding: 12px 14px;
+      padding: 14px 16px 14px 46px;
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius-md);
       color: var(--text);
       font-size: 14px;
+      font-family: inherit;
       outline: none;
-      transition: border-color 0.15s;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
 
-    input[type="text"]:focus, select:focus {
-      border-color: var(--accent);
+    input[type="text"]:focus {
+      border-color: var(--border-focus);
       box-shadow: 0 0 0 3px var(--accent-glow);
     }
 
+    input[type="text"]::placeholder {
+      color: var(--text-dim);
+    }
+
+    /* Dropzone */
     .dropzone {
       border: 2px dashed var(--border);
       border-radius: var(--radius-md);
-      padding: 32px 16px;
+      padding: 36px 20px;
       text-align: center;
       cursor: pointer;
       background: var(--bg);
-      transition: all 0.2s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      position: relative;
     }
 
     .dropzone:hover, .dropzone.dragover {
-      border-color: var(--accent);
-      background: var(--accent-glow);
+      border-color: var(--border-focus);
+      background: var(--accent-light);
+    }
+
+    .dropzone-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
     }
 
     .dropzone input[type="file"] {
       display: none;
     }
 
+    .file-preview {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 480px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-top: 4px;
+    }
+
+    .file-preview-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .file-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .btn-remove-file {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      border-radius: 4px;
+    }
+
+    .btn-remove-file:hover {
+      color: var(--danger);
+    }
+
+    /* Toggle Switches & Option Grid */
     .options-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 16px;
       margin-top: 16px;
-      padding-top: 16px;
+      padding-top: 20px;
       border-top: 1px solid var(--border);
     }
 
-    .checkbox-group {
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .switch-label {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-top: 24px;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
       cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s;
     }
 
-    .checkbox-group input {
-      accent-color: var(--accent);
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
+    .switch-label:hover {
+      border-color: rgba(255, 255, 255, 0.15);
     }
 
+    .switch-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .switch-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .switch-desc {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* Custom Switch Toggle */
+    .switch-control {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .switch-control input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--border);
+      border-radius: 24px;
+      transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Action Button */
     .btn-submit {
       width: 100%;
-      padding: 14px;
+      padding: 16px;
       background: var(--accent);
       color: #fff;
       font-size: 15px;
       font-weight: 600;
+      font-family: inherit;
       border: none;
       border-radius: var(--radius-md);
       cursor: pointer;
-      margin-top: 20px;
-      transition: all 0.2s;
+      margin-top: 24px;
+      transition: all 0.18s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
     }
 
     .btn-submit:hover:not(:disabled) {
       background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-submit:active:not(:disabled) {
+      transform: translateY(0);
     }
 
     .btn-submit:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+      transform: none;
     }
 
-    .status-box {
-      margin-top: 16px;
-      padding: 12px 16px;
-      border-radius: var(--radius-sm);
+    /* Status & Alerts */
+    .status-panel {
+      margin-top: 20px;
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
       font-size: 14px;
       display: none;
-    }
-
-    .status-box.info {
-      display: flex;
       align-items: center;
-      gap: 10px;
-      background: var(--accent-glow);
-      border: 1px solid var(--accent);
-      color: var(--text);
+      gap: 12px;
     }
 
-    .status-box.error {
-      display: block;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid var(--danger);
+    .status-panel.info {
+      background: var(--accent-light);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #bfdbfe;
+    }
+
+    .status-panel.error {
+      background: var(--danger-bg);
+      border: 1px solid rgba(239, 68, 68, 0.3);
       color: #fca5a5;
     }
 
     .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid var(--accent);
-      border-top-color: transparent;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
     }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
 
-    /* Results */
+    /* Results Card */
     #results {
       display: none;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
     }
 
-    .meta-bar {
+    .results-header {
       display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 12px;
     }
 
-    .pill {
+    .result-title-box {
+      max-width: 60%;
+    }
+
+    .result-title-box h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    /* Stat Cards Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      width: 100%;
+    }
+
+    .stat-card {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 4px 12px;
-      font-size: 13px;
-      color: var(--muted);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
 
-    .pill strong {
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 14px;
+      font-weight: 700;
       color: var(--text);
     }
 
-    .download-bar {
+    /* Toolbar & Downloads */
+    .toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .export-formats {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
+      align-items: center;
     }
 
-    .btn-download {
-      padding: 6px 14px;
-      background: var(--surface-hover);
+    .export-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-right: 4px;
+    }
+
+    .btn-chip {
+      padding: 6px 12px;
+      background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text);
       text-decoration: none;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      border-radius: var(--radius-sm);
-      transition: all 0.15s;
+      border-radius: 6px;
+      transition: all 0.15s ease;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .btn-download:hover {
+    .btn-chip:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-focus);
+      color: #fff;
+    }
+
+    .btn-chip.primary {
       background: var(--accent);
       border-color: var(--accent);
-      color: white;
+      color: #fff;
     }
 
-    .btn-copy {
-      margin-left: auto;
-      background: var(--surface-hover);
-      border: 1px solid var(--border);
-      color: var(--accent);
-      padding: 6px 14px;
-      font-size: 13px;
+    .btn-chip.primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .view-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .view-btn {
+      padding: 6px 12px;
+      font-size: 12px;
       font-weight: 600;
-      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
       cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
     }
 
-    .transcript-box {
-      max-height: 480px;
+    .view-btn.active {
+      background: var(--surface-hover);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Filter Search */
+    .filter-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .filter-input {
+      width: 100%;
+      padding: 8px 12px 8px 36px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .filter-input:focus {
+      border-color: var(--border-focus);
+    }
+
+    .filter-icon {
+      position: absolute;
+      left: 12px;
+      color: var(--text-dim);
+      display: flex;
+      pointer-events: none;
+    }
+
+    .filter-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Transcript Content */
+    .transcript-container {
+      max-height: 520px;
       overflow-y: auto;
       background: var(--bg);
       border: 1px solid var(--border);
@@ -338,84 +689,226 @@
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) var(--bg);
     }
 
     .segment-item {
-      padding: 8px 12px;
+      padding: 10px 14px;
       background: var(--surface);
       border-radius: var(--radius-sm);
       border: 1px solid var(--border);
-      font-size: 14px;
+      transition: background 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .segment-item:hover {
+      background: var(--surface-hover);
+    }
+
+    .segment-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .segment-time {
-      font-family: monospace;
-      font-size: 12px;
-      color: var(--accent);
-      margin-bottom: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .segment-copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .segment-copy-btn:hover {
+      color: var(--text);
+      background: var(--surface-active);
+    }
+
+    .segment-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .plain-text-box {
+      display: none;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+      padding: 8px 4px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      background: #1e293b;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
     }
 
     footer {
       text-align: center;
-      color: var(--muted);
+      color: var(--text-dim);
       font-size: 13px;
-      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 16px;
+    }
+
+    /* Responsive */
+    @media (max-width: 680px) {
+      .card {
+        padding: 20px 16px;
+      }
+      .options-grid {
+        grid-template-columns: 1fr;
+      }
+      .results-header {
+        flex-direction: column;
+      }
+      .result-title-box {
+        max-width: 100%;
+      }
+      .toolbar-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
+      <div class="brand-mark">
+        <span class="dot"></span>
+        <span id="hardware-badge">Local Engine • INT8 Quantized</span>
+      </div>
       <h1>Transcript to Text</h1>
-      <p class="subtitle">Bóc tách transcript từ video MP4, MKV, MP3, WAV hoặc link YouTube siêu chuẩn</p>
+      <p class="subtitle">Bóc tách transcript phụ đề từ link YouTube hoặc video/audio cá nhân với độ chính xác cao và tối ưu tốc độ.</p>
     </header>
 
     <div class="card">
-      <div class="tabs">
-        <button class="tab-btn active" id="tab-url-btn" onclick="switchTab('url')">Link YouTube / Web Video</button>
-        <button class="tab-btn" id="tab-file-btn" onclick="switchTab('file')">Tải file Video / Audio lên</button>
+      <div class="tab-nav">
+        <button class="tab-btn active" id="tab-url-btn" onclick="switchTab('url')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+          Link YouTube / Web Video
+        </button>
+        <button class="tab-btn" id="tab-file-btn" onclick="switchTab('file')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          Tải file Video / Audio
+        </button>
       </div>
 
       <!-- Tab URL -->
-      <div class="tab-content active" id="tab-url">
-        <div class="input-group">
-          <label for="video-url">Nhập đường link Video (YouTube, Vimeo, direct link):</label>
-          <input type="text" id="video-url" placeholder="https://www.youtube.com/watch?v=..." />
+      <div class="tab-pane active" id="tab-url">
+        <div class="field-group">
+          <label for="video-url">Đường link video:</label>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            </span>
+            <input type="text" id="video-url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" />
+          </div>
         </div>
-        <label class="checkbox-group" style="margin-top: 6px; margin-bottom: 12px;">
-          <input type="checkbox" id="prefer-yt-subs" checked />
-          <span>Ưu tiên lấy phụ đề có sẵn trên YouTube (Không cần Model AI, hoàn tất tức thì 1 giây)</span>
+
+        <label class="switch-label">
+          <div class="switch-text">
+            <span class="switch-title">Ưu tiên phụ đề gốc YouTube (Không dùng AI)</span>
+            <span class="switch-desc">Lấy trực tiếp sub có sẵn của YouTube trong 1 giây, siêu nhanh và tiết kiệm tài nguyên</span>
+          </div>
+          <div class="switch-control">
+            <input type="checkbox" id="prefer-yt-subs" checked />
+            <span class="slider"></span>
+          </div>
         </label>
       </div>
 
       <!-- Tab File -->
-      <div class="tab-content" id="tab-file">
+      <div class="tab-pane" id="tab-file">
         <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
           <input type="file" id="file-input" accept="video/*,audio/*,.mp4,.mkv,.avi,.mov,.webm,.flv,.mp3,.wav,.m4a,.flac,.aac,.ogg,.opus" />
-          <p id="file-label">Kéo thả file video/audio vào đây hoặc bấm để chọn file</p>
-          <span style="font-size: 12px; color: var(--muted); margin-top: 4px; display: block;">Hỗ trợ: MP4, MKV, WEBM, MOV, MP3, WAV, M4A, FLAC,...</span>
+          <div class="dropzone-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          </div>
+          <div>
+            <p id="file-prompt" style="font-size: 14px; font-weight: 600;">Kéo thả file vào đây hoặc bấm để duyệt file</p>
+            <p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Hỗ trợ MP4, MKV, MOV, WEBM, MP3, WAV, M4A, FLAC,...</p>
+          </div>
+        </div>
+
+        <div class="file-preview" id="file-preview">
+          <div class="file-preview-info">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent); flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <div>
+              <div class="file-name" id="file-name">filename.mp4</div>
+              <div class="file-size" id="file-size">0 MB</div>
+            </div>
+          </div>
+          <button class="btn-remove-file" title="Xóa file đã chọn" onclick="removeSelectedFile(event)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
       </div>
 
       <!-- Options -->
       <div class="options-grid">
-        <div class="input-group">
-          <label for="model-select">Mô hình Whisper:</label>
+        <div class="field-group" style="margin-bottom: 0;">
+          <label for="model-select">Mô hình AI Whisper:</label>
           <select id="model-select">
-            <option value="base" selected>base (Nhanh, nhẹ, chuẩn tốt)</option>
-            <option value="small">small (Cân bằng tốt)</option>
-            <option value="medium">medium (Rất chuẩn)</option>
-            <option value="large-v3-turbo">large-v3-turbo (Siêu chuẩn SOTA, nhanh)</option>
-            <option value="large-v3">large-v3 (Siêu chuẩn cao cấp)</option>
-            <option value="tiny">tiny (Siêu tốc)</option>
+            <option value="base" selected>base • 140MB (Cực nhanh, đủ dùng)</option>
+            <option value="small">small • 460MB (Cân bằng tốt)</option>
+            <option value="medium">medium • 1.5GB (Rất chuẩn xác)</option>
+            <option value="large-v3-turbo">large-v3-turbo • 1.6GB (SOTA chuẩn nhất, nhanh)</option>
+            <option value="large-v3">large-v3 • 3.0GB (Chất lượng cao nhất)</option>
+            <option value="tiny">tiny • 75MB (Siêu tốc)</option>
           </select>
         </div>
 
-        <div class="input-group">
-          <label for="lang-select">Ngôn ngữ:</label>
+        <div class="field-group" style="margin-bottom: 0;">
+          <label for="lang-select">Ngôn ngữ đàm thoại:</label>
           <select id="lang-select">
-            <option value="auto" selected>Tự động nhận diện (Auto)</option>
+            <option value="auto" selected>Tự động nhận diện (Auto Detect)</option>
             <option value="vi">Tiếng Việt (vi)</option>
             <option value="en">English (en)</option>
             <option value="zh">Chinese (zh)</option>
@@ -427,61 +920,138 @@
           </select>
         </div>
 
-        <label class="checkbox-group">
-          <input type="checkbox" id="vad-checkbox" checked />
-          <span>Lọc khoảng lặng (VAD Silero - chống hallucination)</span>
+        <label class="switch-label">
+          <div class="switch-text">
+            <span class="switch-title">Bộ lọc khoảng lặng (VAD)</span>
+            <span class="switch-desc">Silero VAD loại bỏ đoạn im lặng &amp; chống ảo giác lặp từ</span>
+          </div>
+          <div class="switch-control">
+            <input type="checkbox" id="vad-checkbox" checked />
+            <span class="slider"></span>
+          </div>
         </label>
 
-        <label class="checkbox-group">
-          <input type="checkbox" id="words-checkbox" checked />
-          <span>Word Timestamps (Mốc thời gian từng từ)</span>
+        <label class="switch-label">
+          <div class="switch-text">
+            <span class="switch-title">Word Timestamps</span>
+            <span class="switch-desc">Đánh dấu thời gian chuẩn xác đến từng từ</span>
+          </div>
+          <div class="switch-control">
+            <input type="checkbox" id="words-checkbox" checked />
+            <span class="slider"></span>
+          </div>
         </label>
       </div>
 
-      <button class="btn-submit" id="submit-btn" onclick="startTranscription()">Bắt đầu bóc tách Transcript</button>
+      <button class="btn-submit" id="submit-btn" onclick="startTranscription()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Bắt đầu bóc tách Transcript
+      </button>
 
-      <div class="status-box info" id="status-box">
+      <!-- Feedback States -->
+      <div class="status-panel info" id="status-box">
         <div class="spinner"></div>
-        <span id="status-text">Đang xử lý âm thanh và tải mô hình...</span>
+        <span id="status-text">Đang kiểm tra phụ đề hoặc tải mô hình...</span>
       </div>
 
-      <div class="status-box error" id="error-box"></div>
+      <div class="status-panel error" id="error-box"></div>
     </div>
 
     <!-- Results Section -->
     <div class="card" id="results">
-      <div class="meta-bar">
-        <div class="pill">Tiêu đề: <strong id="res-title">-</strong></div>
-        <div class="pill">Ngôn ngữ: <strong id="res-lang">-</strong></div>
-        <div class="pill">Thời lượng: <strong id="res-duration">-</strong></div>
-        <div class="pill">Mô hình: <strong id="res-model">-</strong></div>
-        <div class="pill">Số câu: <strong id="res-segments">-</strong></div>
+      <div class="results-header">
+        <div class="result-title-box">
+          <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); font-weight: 600;">Tiêu đề</span>
+          <h3 id="res-title">-</h3>
+        </div>
+        <button class="btn-chip primary" onclick="copyFullTranscript()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Sao chép toàn bộ text
+        </button>
       </div>
 
-      <div class="download-bar">
-        <span style="font-size: 13px; font-weight: 600; align-self: center; margin-right: 4px;">Tải về:</span>
-        <a class="btn-download" id="dl-txt" target="_blank">TXT</a>
-        <a class="btn-download" id="dl-srt" target="_blank">SRT (Subtitles)</a>
-        <a class="btn-download" id="dl-vtt" target="_blank">VTT (WebVTT)</a>
-        <a class="btn-download" id="dl-json" target="_blank">JSON (Full Details)</a>
-        <a class="btn-download" id="dl-csv" target="_blank">CSV</a>
-        <a class="btn-download" id="dl-tsv" target="_blank">TSV</a>
-        <a class="btn-download" id="dl-md" target="_blank">Markdown (MD)</a>
-        <button class="btn-copy" onclick="copyFullTranscript()">Sao chép Text</button>
+      <!-- Stats Grid -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-label">Thời lượng</span>
+          <span class="stat-value" id="res-duration">-</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Ngôn ngữ</span>
+          <span class="stat-value" id="res-lang">-</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Mô hình</span>
+          <span class="stat-value" id="res-model">-</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Tổng số câu</span>
+          <span class="stat-value" id="res-segments">-</span>
+        </div>
       </div>
 
-      <div class="transcript-box" id="segments-container"></div>
+      <!-- Action Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-row">
+          <div class="export-formats">
+            <span class="export-label">Tải định dạng:</span>
+            <a class="btn-chip" id="dl-txt" target="_blank">TXT</a>
+            <a class="btn-chip" id="dl-srt" target="_blank">SRT (Sub)</a>
+            <a class="btn-chip" id="dl-vtt" target="_blank">VTT</a>
+            <a class="btn-chip" id="dl-json" target="_blank">JSON</a>
+            <a class="btn-chip" id="dl-csv" target="_blank">CSV</a>
+            <a class="btn-chip" id="dl-tsv" target="_blank">TSV</a>
+            <a class="btn-chip" id="dl-md" target="_blank">MD</a>
+          </div>
+
+          <div class="view-controls">
+            <button class="view-btn active" id="view-timeline-btn" onclick="setViewMode('timeline')">Từng câu (Timeline)</button>
+            <button class="view-btn" id="view-plain-btn" onclick="setViewMode('plain')">Toàn văn (Plain)</button>
+          </div>
+        </div>
+
+        <div class="filter-wrapper" id="filter-wrapper">
+          <span class="filter-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </span>
+          <input type="text" class="filter-input" id="filter-input" placeholder="Lọc từ khóa trong transcript..." oninput="filterSegments()" />
+        </div>
+      </div>
+
+      <!-- Transcript Container -->
+      <div class="transcript-container" id="transcript-container">
+        <div id="segments-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        <div class="plain-text-box" id="plain-text-box"></div>
+      </div>
     </div>
 
     <footer>
-      TranscriptToText • 100% Free &amp; Open Source • Chạy hoàn toàn cục bộ bảo mật
+      <span>Transcript to Text • 100% Free &amp; Open Source</span>
+      <span>Chạy hoàn toàn cục bộ, bảo mật dữ liệu âm thanh cá nhân</span>
     </footer>
+  </div>
+
+  <div class="toast" id="toast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toast-text">Đã sao chép vào clipboard!</span>
   </div>
 
   <script>
     let currentTab = 'url';
     let selectedFile = null;
     let currentResultData = null;
+    let currentViewMode = 'timeline';
+
+    // Fetch system info on load
+    fetch('/api/info')
+      .then(r => r.json())
+      .then(info => {
+        const badge = document.getElementById('hardware-badge');
+        if (badge && info.device) {
+          badge.innerText = `${info.device.toUpperCase()} (${info.compute_type.toUpperCase()}) • Local Whisper Engine`;
+        }
+      })
+      .catch(() => {});
 
     function switchTab(tab) {
       currentTab = tab;
@@ -493,12 +1063,13 @@
 
     const fileInput = document.getElementById('file-input');
     const dropzone = document.getElementById('dropzone');
-    const fileLabel = document.getElementById('file-label');
+    const filePreview = document.getElementById('file-preview');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
 
     fileInput.addEventListener('change', (e) => {
       if (e.target.files.length > 0) {
-        selectedFile = e.target.files[0];
-        fileLabel.innerText = 'Đã chọn: ' + selectedFile.name + ' (' + (selectedFile.size / 1024 / 1024).toFixed(2) + ' MB)';
+        setFile(e.target.files[0]);
       }
     });
 
@@ -515,16 +1086,38 @@
       e.preventDefault();
       dropzone.classList.remove('dragover');
       if (e.dataTransfer.files.length > 0) {
-        selectedFile = e.dataTransfer.files[0];
-        fileLabel.innerText = 'Đã chọn: ' + selectedFile.name + ' (' + (selectedFile.size / 1024 / 1024).toFixed(2) + ' MB)';
+        setFile(e.dataTransfer.files[0]);
       }
     });
+
+    function setFile(file) {
+      selectedFile = file;
+      fileName.innerText = file.name;
+      fileSize.innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+      filePreview.style.display = 'flex';
+      dropzone.style.display = 'none';
+    }
+
+    function removeSelectedFile(e) {
+      e.stopPropagation();
+      selectedFile = null;
+      fileInput.value = '';
+      filePreview.style.display = 'none';
+      dropzone.style.display = 'flex';
+    }
 
     function formatTime(sec) {
       const m = Math.floor(sec / 60);
       const s = Math.floor(sec % 60);
-      const ms = Math.floor((sec % 1) * 1000);
-      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+      const ms = Math.floor((sec % 1) * 100);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-text').innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2400);
     }
 
     async function startTranscription() {
@@ -551,7 +1144,9 @@
             throw new Error('Vui lòng nhập đường link video!');
           }
           const preferYtSubs = document.getElementById('prefer-yt-subs').checked;
-          document.getElementById('status-text').innerText = 'Đang kiểm tra phụ đề YouTube hoặc tải âm thanh và bóc tách...';
+          document.getElementById('status-text').innerText = preferYtSubs 
+            ? 'Đang kiểm tra phụ đề YouTube hoặc chuẩn bị bóc tách...' 
+            : 'Đang tải audio và bóc tách bằng mô hình Whisper...';
 
           response = await fetch('/api/transcribe-url', {
             method: 'POST',
@@ -603,9 +1198,13 @@
       currentResultData = data;
       document.getElementById('res-title').innerText = data.title;
       document.getElementById('res-lang').innerText = `${data.language.toUpperCase()} (${(data.language_probability * 100).toFixed(0)}%)`;
-      document.getElementById('res-duration').innerText = `${data.duration.toFixed(1)}s`;
+      
+      const durSec = data.duration;
+      const m = Math.floor(durSec / 60);
+      const s = Math.floor(durSec % 60);
+      document.getElementById('res-duration').innerText = `${m}m ${s}s (${durSec.toFixed(1)}s)`;
       document.getElementById('res-model').innerText = data.model_name;
-      document.getElementById('res-segments').innerText = data.segments.length;
+      document.getElementById('res-segments').innerText = `${data.segments.length} đoạn`;
 
       // Downloads
       const dlKeys = ['txt', 'srt', 'vtt', 'json', 'csv', 'tsv', 'md'];
@@ -623,21 +1222,60 @@
       data.segments.forEach(seg => {
         const div = document.createElement('div');
         div.className = 'segment-item';
+        div.setAttribute('data-text', seg.text.toLowerCase());
         div.innerHTML = `
-          <div class="segment-time">[${formatTime(seg.start)} ➔ ${formatTime(seg.end)}]</div>
+          <div class="segment-top">
+            <span class="segment-time">${formatTime(seg.start)} ➔ ${formatTime(seg.end)}</span>
+            <button class="segment-copy-btn" onclick="copyText('${escapeJs(seg.text)}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              Chép
+            </button>
+          </div>
           <div class="segment-text">${escapeHtml(seg.text)}</div>
         `;
         container.appendChild(div);
       });
 
+      // Plain Text
+      document.getElementById('plain-text-box').innerText = data.text;
+
+      // Reset filter and view
+      document.getElementById('filter-input').value = '';
+      setViewMode('timeline');
+
       document.getElementById('results').style.display = 'flex';
       document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      const isTimeline = mode === 'timeline';
+      document.getElementById('view-timeline-btn').classList.toggle('active', isTimeline);
+      document.getElementById('view-plain-btn').classList.toggle('active', !isTimeline);
+      document.getElementById('segments-container').style.display = isTimeline ? 'flex' : 'none';
+      document.getElementById('plain-text-box').style.display = isTimeline ? 'none' : 'block';
+      document.getElementById('filter-wrapper').style.display = isTimeline ? 'flex' : 'none';
+    }
+
+    function filterSegments() {
+      const q = document.getElementById('filter-input').value.trim().toLowerCase();
+      const items = document.querySelectorAll('.segment-item');
+      items.forEach(el => {
+        const txt = el.getAttribute('data-text') || '';
+        el.style.display = txt.includes(q) ? 'flex' : 'none';
+      });
     }
 
     function copyFullTranscript() {
       if (!currentResultData) return;
       navigator.clipboard.writeText(currentResultData.text).then(() => {
-        alert('Đã sao chép toàn bộ nội dung text vào clipboard!');
+        showToast('Đã sao chép toàn bộ nội dung text!');
+      });
+    }
+
+    function copyText(str) {
+      navigator.clipboard.writeText(str).then(() => {
+        showToast('Đã sao chép đoạn văn!');
       });
     }
 
@@ -648,6 +1286,10 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+    }
+
+    function escapeJs(text) {
+      return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, ' ');
     }
   </script>
 </body>
