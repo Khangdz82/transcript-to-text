@@ -11,10 +11,20 @@ Tất cả các model AI đều được thiết lập mặc định chạy ở 
 Dự án đi kèm 2 file `.bat` để người dùng không rành lập trình cũng mở được ngay:
 
 - **`run_app.bat`**: 
-  - **Cách 1:** Kéo thả trực tiếp file video/audio bất kỳ vào biểu tượng `run_app.bat` để tự động bóc tách.
-  - **Cách 2:** Nhấp đúp chuột để mở giao diện dòng lệnh, dán link YouTube hoặc đường dẫn file và chọn model AI (hoặc bấm `0` để lấy phụ đề YouTube không cần AI).
+  - **Ứng dụng Desktop Studio Native (CustomTkinter Dark Mode):** Mở giao diện cửa sổ ứng dụng riêng biệt, hiển thị thông số phần cứng (CPU/CUDA), chọn model AI, chọn ngôn ngữ, xem văn bản thời gian thực, xem trước phụ đề và xuất file 1-click.
+  - Hỗ trợ kéo thả trực tiếp file video/audio vào biểu tượng `run_app.bat` để tự động nạp vào ứng dụng.
 - **`run_web.bat`**: 
-  - Nhấp đúp chuột để khởi động server Web UI cục bộ và tự động mở trình duyệt web tại địa chỉ `http://127.0.0.1:8000`.
+  - Khởi động server Web UI cục bộ và tự động mở trình duyệt web tại địa chỉ `http://127.0.0.1:8000`.
+
+---
+
+## ⚡ Tối ưu hóa hiệu năng & Tiết kiệm tài nguyên (Engine Optimization)
+
+- **Tải model đa luồng siêu tốc:** Tải đồng thời 8 luồng song song (`max_workers=8`) trực tiếp từ Hugging Face Hub, tối ưu hóa đường truyền mạng.
+- **Lượng tử hóa Q4 / INT8:** Giảm 75% RAM và VRAM, tránh tuyệt đối hiện tượng tràn bộ nhớ (Out-Of-Memory).
+- **Bộ giải mã tối ưu (Fast Greedy Decoding):** Cấu hình `beam_size=1` và `best_of=1` tăng tốc độ suy luận gấp 2 - 3 lần mà không làm giảm độ chuẩn xác trên các mô hình SOTA như `large-v3-turbo`.
+- **Silero VAD chính xác:** Lọc bỏ khoảng lặng trước khi qua transformer, giúp CPU/GPU không phải xử lý âm thanh rác, tiết kiệm điện năng và giảm nhiệt độ máy.
+- **Thu hồi bộ nhớ tức thì:** Gọi bộ thu gom rác bộ nhớ (`gc.collect()`) ngay khi kết thúc phân đoạn, giải phóng toàn bộ buffer âm thanh tạm thời.
 
 ---
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import os
 import site
 import sys
@@ -182,6 +183,7 @@ def download_model_with_progress(
         repo_id,
         allow_patterns=allow_patterns,
         cache_dir=cache_dir,
+        max_workers=8,
         tqdm_class=DownloadProgressTracker,
     )
 
@@ -209,7 +211,7 @@ class Transcriber:
         target_device = detected_device if device == "auto" else device
         target_compute = detected_compute if compute_type == "auto" else compute_type
 
-        threads = cpu_threads or max(1, os.cpu_count() or 4)
+        threads = cpu_threads or min(os.cpu_count() or 4, 8)
 
         # Download model with real-time percentage before loading
         model_path = download_model_with_progress(
@@ -245,18 +247,19 @@ class Transcriber:
         audio_path: str | Path,
         language: Optional[str] = None,
         task: str = "transcribe",
-        beam_size: int = 5,
+        beam_size: int = 1,
         vad_filter: bool = True,
         word_timestamps: bool = True,
         initial_prompt: Optional[str] = None,
         progress_callback: Optional[Callable[[float, str], None]] = None,
     ) -> TranscriptionResult:
-        """Run high-accuracy speech-to-text on audio file."""
+        """Run high-accuracy speech-to-text on audio file with optimized speed & memory."""
         src_path = str(Path(audio_path).resolve())
 
         vad_params = dict(
-            min_silence_duration_ms=500,
-            speech_pad_ms=300,
+            min_silence_duration_ms=400,
+            speech_pad_ms=250,
+            threshold=0.5,
         ) if vad_filter else None
 
         segments_gen, info = self.model.transcribe(
@@ -264,50 +267,53 @@ class Transcriber:
             language=language if language and language.lower() != "auto" else None,
             task=task,
             beam_size=beam_size,
-            best_of=5,
+            best_of=beam_size,
             vad_filter=vad_filter,
             vad_parameters=vad_params,
             word_timestamps=word_timestamps,
             initial_prompt=initial_prompt,
-            condition_on_previous_text=True,
-            temperature=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+            condition_on_previous_text=False,
+            temperature=[0.0, 0.2, 0.4],
         )
 
         total_duration = info.duration or 0.0
         parsed_segments: List[Segment] = []
         full_text_parts: List[str] = []
 
-        for seg_idx, seg in enumerate(segments_gen):
-            cleaned_text = seg.text.strip()
-            full_text_parts.append(cleaned_text)
+        try:
+            for seg_idx, seg in enumerate(segments_gen):
+                cleaned_text = seg.text.strip()
+                full_text_parts.append(cleaned_text)
 
-            words_list: List[WordInfo] = []
-            if seg.words:
-                for w in seg.words:
-                    words_list.append(
-                        WordInfo(
-                            word=w.word,
-                            start=round(w.start, 3),
-                            end=round(w.end, 3),
-                            probability=round(w.probability, 3),
+                words_list: List[WordInfo] = []
+                if seg.words:
+                    for w in seg.words:
+                        words_list.append(
+                            WordInfo(
+                                word=w.word,
+                                start=round(w.start, 3),
+                                end=round(w.end, 3),
+                                probability=round(w.probability, 3),
+                            )
                         )
+
+                parsed_segments.append(
+                    Segment(
+                        id=seg_idx + 1,
+                        start=round(seg.start, 3),
+                        end=round(seg.end, 3),
+                        text=cleaned_text,
+                        words=words_list,
+                        avg_logprob=round(seg.avg_logprob, 3),
+                        no_speech_prob=round(seg.no_speech_prob, 3),
                     )
-
-            parsed_segments.append(
-                Segment(
-                    id=seg_idx + 1,
-                    start=round(seg.start, 3),
-                    end=round(seg.end, 3),
-                    text=cleaned_text,
-                    words=words_list,
-                    avg_logprob=round(seg.avg_logprob, 3),
-                    no_speech_prob=round(seg.no_speech_prob, 3),
                 )
-            )
 
-            if progress_callback and total_duration > 0:
-                pct = min(100.0, (seg.end / total_duration) * 100.0)
-                progress_callback(pct, cleaned_text)
+                if progress_callback and total_duration > 0:
+                    pct = min(100.0, (seg.end / total_duration) * 100.0)
+                    progress_callback(pct, cleaned_text)
+        finally:
+            gc.collect()
 
         full_text = " ".join(full_text_parts)
 

@@ -19,11 +19,13 @@ dependencies = [
     "fastapi>=0.100.0",
     "uvicorn>=0.20.0",
     "python-multipart>=0.0.6",
+    "customtkinter>=6.0.0",
 ]
 
 [project.scripts]
 transcript-to-text = "transcript_to_text.cli:main"
 ttt = "transcript_to_text.cli:main"
+ttt-gui = "transcript_to_text.app_gui:launch_app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
