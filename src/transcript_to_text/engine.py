@@ -28,9 +28,13 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+# Enable high-speed downloads via Rust/Xet transfer when available
+os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "1")
+os.environ.setdefault("HF_XET_HIGH_PERFORMANCE", "1")
+
 import ctranslate2
 import huggingface_hub
-from faster_whisper import WhisperModel
+from faster_whisper import BatchedInferencePipeline, WhisperModel
 from tqdm import tqdm
 
 AVAILABLE_MODELS = [
@@ -104,23 +108,28 @@ class TranscriptionResult:
 
 
 def detect_optimal_device_and_compute() -> tuple[str, str]:
-    """Detect available accelerator and default to quantized INT8/Q4 precision."""
+    """Detect available accelerator and select fastest compute precision."""
     try:
         if ctranslate2.get_cuda_device_count() > 0:
             supported_cuda = ctranslate2.get_supported_compute_types("cuda")
-            if "int8" in supported_cuda:
-                return "cuda", "int8"
+            # int8_float16 gives INT8 memory footprint with Tensor Core FP16 execution
             if "int8_float16" in supported_cuda:
                 return "cuda", "int8_float16"
+            if "float16" in supported_cuda:
+                return "cuda", "float16"
+            if "int8" in supported_cuda:
+                return "cuda", "int8"
             return "cuda", "default"
     except Exception:
         pass
 
-    # CPU fallback with int8 quantization
+    # CPU fallback with int8 quantization for AVX2/AVX-512 VNNI acceleration
     try:
         supported_cpu = ctranslate2.get_supported_compute_types("cpu")
         if "int8" in supported_cpu:
             return "cpu", "int8"
+        if "int8_float32" in supported_cpu:
+            return "cpu", "int8_float32"
     except Exception:
         pass
     return "cpu", "float32"
@@ -183,7 +192,8 @@ def download_model_with_progress(
         repo_id,
         allow_patterns=allow_patterns,
         cache_dir=cache_dir,
-        max_workers=8,
+        max_workers=16,
+        resume_download=True,
         tqdm_class=DownloadProgressTracker,
     )
 
@@ -200,7 +210,7 @@ class Transcriber:
         self,
         model_size: str = "base",
         device: str = "auto",
-        compute_type: str = "int8",
+        compute_type: str = "auto",
         cpu_threads: int = 0,
         download_root: Optional[str | Path] = None,
         download_progress_callback: Optional[Callable[[float, str], None]] = None,
@@ -226,10 +236,11 @@ class Transcriber:
                 device=target_device,
                 compute_type=target_compute,
                 cpu_threads=threads,
+                num_workers=1,
             )
             self.device = target_device
             self.compute_type = target_compute
-        except Exception as e:
+        except Exception:
             if target_device == "cuda":
                 self.device = "cpu"
                 self.compute_type = "int8"
@@ -238,9 +249,15 @@ class Transcriber:
                     device=self.device,
                     compute_type=self.compute_type,
                     cpu_threads=threads,
+                    num_workers=1,
                 )
             else:
-                raise e
+                raise
+
+        try:
+            self.batched_pipeline = BatchedInferencePipeline(model=self.model)
+        except Exception:
+            self.batched_pipeline = None
 
     def transcribe(
         self,
@@ -258,23 +275,48 @@ class Transcriber:
 
         vad_params = dict(
             min_silence_duration_ms=400,
-            speech_pad_ms=250,
+            speech_pad_ms=200,
             threshold=0.5,
         ) if vad_filter else None
 
-        segments_gen, info = self.model.transcribe(
-            src_path,
-            language=language if language and language.lower() != "auto" else None,
-            task=task,
-            beam_size=beam_size,
-            best_of=beam_size,
-            vad_filter=vad_filter,
-            vad_parameters=vad_params,
-            word_timestamps=word_timestamps,
-            initial_prompt=initial_prompt,
-            condition_on_previous_text=False,
-            temperature=[0.0, 0.2, 0.4],
-        )
+        batch_size = 16 if self.device == "cuda" else 8
+        segments_gen = None
+        info = None
+
+        # Batched inference pipeline for multi-fold speedup
+        if self.batched_pipeline is not None and batch_size > 1:
+            try:
+                segments_gen, info = self.batched_pipeline.transcribe(
+                    src_path,
+                    language=language if language and language.lower() != "auto" else None,
+                    task=task,
+                    batch_size=batch_size,
+                    beam_size=beam_size,
+                    best_of=beam_size,
+                    vad_filter=vad_filter,
+                    vad_parameters=vad_params,
+                    word_timestamps=word_timestamps,
+                    initial_prompt=initial_prompt,
+                    condition_on_previous_text=False,
+                    temperature=0.0,
+                )
+            except Exception:
+                segments_gen = None
+
+        if segments_gen is None:
+            segments_gen, info = self.model.transcribe(
+                src_path,
+                language=language if language and language.lower() != "auto" else None,
+                task=task,
+                beam_size=beam_size,
+                best_of=beam_size,
+                vad_filter=vad_filter,
+                vad_parameters=vad_params,
+                word_timestamps=word_timestamps,
+                initial_prompt=initial_prompt,
+                condition_on_previous_text=False,
+                temperature=0.0,
+            )
 
         total_duration = info.duration or 0.0
         parsed_segments: List[Segment] = []

@@ -44,7 +44,7 @@ MODEL_CACHE: Dict[str, Transcriber] = {}
 
 def get_cached_transcriber(model_size: str) -> Transcriber:
     if model_size not in MODEL_CACHE:
-        MODEL_CACHE[model_size] = Transcriber(model_size=model_size, compute_type="int8")
+        MODEL_CACHE[model_size] = Transcriber(model_size=model_size, compute_type="auto")
     return MODEL_CACHE[model_size]
 
 

@@ -490,7 +490,7 @@ class TranscriptApp(ctk.CTk):
                 self._update_status(35.0, f"Đang kiểm tra/tải mô hình {model} (Q4)...")
                 transcriber = Transcriber(
                     model_size=model,
-                    compute_type="int8",
+                    compute_type="auto",
                     download_progress_callback=self._update_status,
                 )
 

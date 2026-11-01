@@ -69,29 +69,7 @@
       align-items: center;
       text-align: center;
       gap: 8px;
-      margin-bottom: 4px;
-    }
-
-    .brand-mark {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
-
-    .brand-mark .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 8px var(--success);
+      margin-bottom: 8px;
     }
 
     h1 {
@@ -820,10 +798,6 @@
 <body>
   <div class="container">
     <header>
-      <div class="brand-mark">
-        <span class="dot"></span>
-        <span id="hardware-badge">Local Engine • INT8 Quantized</span>
-      </div>
       <h1>Transcript to Text</h1>
       <p class="subtitle">Bóc tách transcript phụ đề từ link YouTube hoặc video/audio cá nhân với độ chính xác cao và tối ưu tốc độ.</p>
     </header>
@@ -1041,17 +1015,6 @@
     let selectedFile = null;
     let currentResultData = null;
     let currentViewMode = 'timeline';
-
-    // Fetch system info on load
-    fetch('/api/info')
-      .then(r => r.json())
-      .then(info => {
-        const badge = document.getElementById('hardware-badge');
-        if (badge && info.device) {
-          badge.innerText = `${info.device.toUpperCase()} (${info.compute_type.toUpperCase()}) • Local Whisper Engine`;
-        }
-      })
-      .catch(() => {});
 
     function switchTab(tab) {
       currentTab = tab;
