@@ -45,7 +45,7 @@ def transcribe_source(
     model_size: str = "base",
     language: Optional[str] = None,
     device: str = "auto",
-    compute_type: str = "auto",
+    compute_type: str = "int8",
     vad_filter: bool = True,
     word_timestamps: bool = True,
     initial_prompt: Optional[str] = None,

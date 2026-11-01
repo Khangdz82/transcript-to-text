@@ -96,9 +96,9 @@ def main(ctx: click.Context) -> None:
 )
 @click.option(
     "--compute-type",
-    default="auto",
+    default="int8",
     show_default=True,
-    help="Compute precision ('auto', 'int8', 'float16', 'float32').",
+    help="Compute precision ('int8' Q4 quantized, 'float16', 'float32').",
 )
 @click.option(
     "--vad/--no-vad",

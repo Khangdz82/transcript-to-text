@@ -86,19 +86,19 @@ class TranscriptionResult:
 
 
 def detect_optimal_device_and_compute() -> tuple[str, str]:
-    """Detect available accelerator and best compute precision."""
+    """Detect available accelerator and default to quantized INT8/Q4 precision."""
     try:
         if ctranslate2.get_cuda_device_count() > 0:
             supported_cuda = ctranslate2.get_supported_compute_types("cuda")
-            if "float16" in supported_cuda:
-                return "cuda", "float16"
+            if "int8" in supported_cuda:
+                return "cuda", "int8"
             if "int8_float16" in supported_cuda:
                 return "cuda", "int8_float16"
             return "cuda", "default"
     except Exception:
         pass
 
-    # CPU fallback
+    # CPU fallback with int8 quantization
     try:
         supported_cpu = ctranslate2.get_supported_compute_types("cpu")
         if "int8" in supported_cpu:
@@ -115,7 +115,7 @@ class Transcriber:
         self,
         model_size: str = "base",
         device: str = "auto",
-        compute_type: str = "auto",
+        compute_type: str = "int8",
         cpu_threads: int = 0,
         download_root: Optional[str | Path] = None,
     ) -> None:
