@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transcript to Text - Bóc tách Video / YouTube thành Text siêu chuẩn</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #121826;
+      --surface-hover: #1b2337;
+      --border: #232d42;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #0ea5e9;
+      --accent-hover: #0284c7;
+      --accent-glow: rgba(14, 165, 233, 0.15);
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 920px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: var(--bg);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn.active {
+      color: var(--text);
+      background: var(--surface);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-md);
+      padding: 32px 16px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--bg);
+      transition: all 0.2s;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .dropzone input[type="file"] {
+      display: none;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 24px;
+      cursor: pointer;
+    }
+
+    .checkbox-group input {
+      accent-color: var(--accent);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status-box {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      display: none;
+    }
+
+    .status-box.info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent-glow);
+      border: 1px solid var(--accent);
+      color: var(--text);
+    }
+
+    .status-box.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--accent);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Results */
+    #results {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .pill {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .pill strong {
+      color: var(--text);
+    }
+
+    .download-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .btn-download {
+      padding: 6px 14px;
+      background: var(--surface-hover);
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+
+    .btn-download:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .btn-copy {
+      margin-left: auto;
+      background: var(--surface-hover);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .transcript-box {
+      max-height: 480px;
+      overflow-y: auto;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .segment-item {
+      padding: 8px 12px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .segment-time {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">100% Open Source • Faster-Whisper • VAD</div>
+      <h1>Transcript to Text</h1>
+      <p class="subtitle">Bóc tách transcript từ video MP4, MKV, MP3, WAV hoặc link YouTube siêu chuẩn</p>
+    </header>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-url-btn" onclick="switchTab('url')">Link YouTube / Web Video</button>
+        <button class="tab-btn" id="tab-file-btn" onclick="switchTab('file')">Tải file Video / Audio lên</button>
+      </div>
+
+      <!-- Tab URL -->
+      <div class="tab-content active" id="tab-url">
+        <div class="input-group">
+          <label for="video-url">Nhập đường link Video (YouTube, Vimeo, direct link):</label>
+          <input type="text" id="video-url" placeholder="https://www.youtube.com/watch?v=..." />
+        </div>
+      </div>
+
+      <!-- Tab File -->
+      <div class="tab-content" id="tab-file">
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" accept="video/*,audio/*,.mp4,.mkv,.avi,.mov,.webm,.flv,.mp3,.wav,.m4a,.flac,.aac,.ogg,.opus" />
+          <p id="file-label">Kéo thả file video/audio vào đây hoặc bấm để chọn file</p>
+          <span style="font-size: 12px; color: var(--muted); margin-top: 4px; display: block;">Hỗ trợ: MP4, MKV, WEBM, MOV, MP3, WAV, M4A, FLAC,...</span>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="options-grid">
+        <div class="input-group">
+          <label for="model-select">Mô hình Whisper:</label>
+          <select id="model-select">
+            <option value="base" selected>base (Nhanh, nhẹ, chuẩn tốt)</option>
+            <option value="small">small (Cân bằng tốt)</option>
+            <option value="medium">medium (Rất chuẩn)</option>
+            <option value="large-v3-turbo">large-v3-turbo (Siêu chuẩn SOTA, nhanh)</option>
+            <option value="large-v3">large-v3 (Siêu chuẩn cao cấp)</option>
+            <option value="tiny">tiny (Siêu tốc)</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label for="lang-select">Ngôn ngữ:</label>
+          <select id="lang-select">
+            <option value="auto" selected>Tự động nhận diện (Auto)</option>
+            <option value="vi">Tiếng Việt (vi)</option>
+            <option value="en">English (en)</option>
+            <option value="zh">Chinese (zh)</option>
+            <option value="ja">Japanese (ja)</option>
+            <option value="ko">Korean (ko)</option>
+            <option value="fr">French (fr)</option>
+            <option value="de">German (de)</option>
+            <option value="es">Spanish (es)</option>
+          </select>
+        </div>
+
+        <label class="checkbox-group">
+          <input type="checkbox" id="vad-checkbox" checked />
+          <span>Lọc khoảng lặng (VAD Silero - chống hallucination)</span>
+        </label>
+
+        <label class="checkbox-group">
+          <input type="checkbox" id="words-checkbox" checked />
+          <span>Word Timestamps (Mốc thời gian từng từ)</span>
+        </label>
+      </div>
+
+      <button class="btn-submit" id="submit-btn" onclick="startTranscription()">Bắt đầu bóc tách Transcript</button>
+
+      <div class="status-box info" id="status-box">
+        <div class="spinner"></div>
+        <span id="status-text">Đang xử lý âm thanh và tải mô hình...</span>
+      </div>
+
+      <div class="status-box error" id="error-box"></div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="card" id="results">
+      <div class="meta-bar">
+        <div class="pill">Tiêu đề: <strong id="res-title">-</strong></div>
+        <div class="pill">Ngôn ngữ: <strong id="res-lang">-</strong></div>
+        <div class="pill">Thời lượng: <strong id="res-duration">-</strong></div>
+        <div class="pill">Mô hình: <strong id="res-model">-</strong></div>
+        <div class="pill">Số câu: <strong id="res-segments">-</strong></div>
+      </div>
+
+      <div class="download-bar">
+        <span style="font-size: 13px; font-weight: 600; align-self: center; margin-right: 4px;">Tải về:</span>
+        <a class="btn-download" id="dl-txt" target="_blank">TXT</a>
+        <a class="btn-download" id="dl-srt" target="_blank">SRT (Subtitles)</a>
+        <a class="btn-download" id="dl-vtt" target="_blank">VTT (WebVTT)</a>
+        <a class="btn-download" id="dl-json" target="_blank">JSON (Full Details)</a>
+        <a class="btn-download" id="dl-csv" target="_blank">CSV</a>
+        <a class="btn-download" id="dl-tsv" target="_blank">TSV</a>
+        <a class="btn-download" id="dl-md" target="_blank">Markdown (MD)</a>
+        <button class="btn-copy" onclick="copyFullTranscript()">Sao chép Text</button>
+      </div>
+
+      <div class="transcript-box" id="segments-container"></div>
+    </div>
+
+    <footer>
+      TranscriptToText • 100% Free &amp; Open Source • Chạy hoàn toàn cục bộ bảo mật
+    </footer>
+  </div>
+
+  <script>
+    let currentTab = 'url';
+    let selectedFile = null;
+    let currentResultData = null;
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-url-btn').classList.toggle('active', tab === 'url');
+      document.getElementById('tab-file-btn').classList.toggle('active', tab === 'file');
+      document.getElementById('tab-url').classList.toggle('active', tab === 'url');
+      document.getElementById('tab-file').classList.toggle('active', tab === 'file');
+    }
+
+    const fileInput = document.getElementById('file-input');
+    const dropzone = document.getElementById('dropzone');
+    const fileLabel = document.getElementById('file-label');
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        selectedFile = e.target.files[0];
+        fileLabel.innerText = 'Đã chọn: ' + selectedFile.name + ' (' + (selectedFile.size / 1024 / 1024).toFixed(2) + ' MB)';
+      }
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        selectedFile = e.dataTransfer.files[0];
+        fileLabel.innerText = 'Đã chọn: ' + selectedFile.name + ' (' + (selectedFile.size / 1024 / 1024).toFixed(2) + ' MB)';
+      }
+    });
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      const ms = Math.floor((sec % 1) * 1000);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+    }
+
+    async function startTranscription() {
+      const submitBtn = document.getElementById('submit-btn');
+      const statusBox = document.getElementById('status-box');
+      const errorBox = document.getElementById('error-box');
+      const resultsSection = document.getElementById('results');
+
+      errorBox.style.display = 'none';
+      resultsSection.style.display = 'none';
+      statusBox.style.display = 'flex';
+      submitBtn.disabled = true;
+
+      const model = document.getElementById('model-select').value;
+      const language = document.getElementById('lang-select').value;
+      const vad = document.getElementById('vad-checkbox').checked;
+      const wordTimestamps = document.getElementById('words-checkbox').checked;
+
+      try {
+        let response;
+        if (currentTab === 'url') {
+          const url = document.getElementById('video-url').value.trim();
+          if (!url) {
+            throw new Error('Vui lòng nhập đường link video!');
+          }
+          document.getElementById('status-text').innerText = 'Đang tải âm thanh từ URL và bóc tách transcript...';
+
+          response = await fetch('/api/transcribe-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              url: url,
+              model: model,
+              language: language === 'auto' ? null : language,
+              vad: vad,
+              word_timestamps: wordTimestamps
+            })
+          });
+        } else {
+          if (!selectedFile) {
+            throw new Error('Vui lòng chọn hoặc kéo thả file video/audio!');
+          }
+          document.getElementById('status-text').innerText = 'Đang tải file lên và bóc tách transcript...';
+
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          formData.append('model', model);
+          if (language !== 'auto') formData.append('language', language);
+          formData.append('vad', vad);
+          formData.append('word_timestamps', wordTimestamps);
+
+          response = await fetch('/api/transcribe-file', {
+            method: 'POST',
+            body: formData
+          });
+        }
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || 'Bóc tách transcript thất bại');
+        }
+
+        renderResults(data);
+      } catch (err) {
+        errorBox.innerText = 'Lỗi: ' + err.message;
+        errorBox.style.display = 'block';
+      } finally {
+        statusBox.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    }
+
+    function renderResults(data) {
+      currentResultData = data;
+      document.getElementById('res-title').innerText = data.title;
+      document.getElementById('res-lang').innerText = `${data.language.toUpperCase()} (${(data.language_probability * 100).toFixed(0)}%)`;
+      document.getElementById('res-duration').innerText = `${data.duration.toFixed(1)}s`;
+      document.getElementById('res-model').innerText = data.model_name;
+      document.getElementById('res-segments').innerText = data.segments.length;
+
+      // Downloads
+      const dlKeys = ['txt', 'srt', 'vtt', 'json', 'csv', 'tsv', 'md'];
+      dlKeys.forEach(k => {
+        const btn = document.getElementById('dl-' + k);
+        if (btn && data.downloads[k]) {
+          btn.href = data.downloads[k];
+          btn.download = `${data.title}.${k}`;
+        }
+      });
+
+      // Segments
+      const container = document.getElementById('segments-container');
+      container.innerHTML = '';
+      data.segments.forEach(seg => {
+        const div = document.createElement('div');
+        div.className = 'segment-item';
+        div.innerHTML = `
+          <div class="segment-time">[${formatTime(seg.start)} ➔ ${formatTime(seg.end)}]</div>
+          <div class="segment-text">${escapeHtml(seg.text)}</div>
+        `;
+        container.appendChild(div);
+      });
+
+      document.getElementById('results').style.display = 'flex';
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function copyFullTranscript() {
+      if (!currentResultData) return;
+      navigator.clipboard.writeText(currentResultData.text).then(() => {
+        alert('Đã sao chép toàn bộ nội dung text vào clipboard!');
+      });
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transcript-to-text"
+version = "1.0.0"
+description = "High-accuracy open-source audio/video transcription tool with multi-format export and YouTube support"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "TranscriptToText Team" }]
+keywords = ["whisper", "faster-whisper", "speech-to-text", "transcription", "youtube", "subtitles"]
+dependencies = [
+    "faster-whisper>=1.0.0",
+    "yt-dlp>=2024.0.0",
+    "rich>=13.0.0",
+    "click>=8.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "python-multipart>=0.0.6",
+]
+
+[project.scripts]
+transcript-to-text = "transcript_to_text.cli:main"
+ttt = "transcript_to_text.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
