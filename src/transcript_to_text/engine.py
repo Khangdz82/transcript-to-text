@@ -1,4 +1,4 @@
-"""High-accuracy transcription engine using faster-whisper."""
+"""High-accuracy transcription engine using faster-whisper with real-time download tracking."""
 
 from __future__ import annotations
 
@@ -28,7 +28,9 @@ if sys.platform == "win32":
         pass
 
 import ctranslate2
+import huggingface_hub
 from faster_whisper import WhisperModel
+from tqdm import tqdm
 
 AVAILABLE_MODELS = [
     "tiny",
@@ -44,6 +46,21 @@ AVAILABLE_MODELS = [
     "large-v3",
     "large-v3-turbo",
 ]
+
+MODEL_REPO_MAP = {
+    "tiny": "Systran/faster-whisper-tiny",
+    "tiny.en": "Systran/faster-whisper-tiny.en",
+    "base": "Systran/faster-whisper-base",
+    "base.en": "Systran/faster-whisper-base.en",
+    "small": "Systran/faster-whisper-small",
+    "small.en": "Systran/faster-whisper-small.en",
+    "medium": "Systran/faster-whisper-medium",
+    "medium.en": "Systran/faster-whisper-medium.en",
+    "large-v1": "Systran/faster-whisper-large-v1",
+    "large-v2": "Systran/faster-whisper-large-v2",
+    "large-v3": "Systran/faster-whisper-large-v3",
+    "large-v3-turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+}
 
 
 @dataclass
@@ -108,8 +125,74 @@ def detect_optimal_device_and_compute() -> tuple[str, str]:
     return "cpu", "float32"
 
 
+def download_model_with_progress(
+    model_size_or_repo: str,
+    download_root: Optional[str | Path] = None,
+    progress_callback: Optional[Callable[[float, str], None]] = None,
+) -> str:
+    """Download CTranslate2 Whisper model with real-time percentage progress tracking."""
+    local_candidate = Path(model_size_or_repo)
+    if local_candidate.exists() and local_candidate.is_dir():
+        if progress_callback:
+            progress_callback(100.0, f"Mô hình cục bộ: {model_size_or_repo}")
+        return str(local_candidate)
+
+    repo_id = MODEL_REPO_MAP.get(model_size_or_repo, model_size_or_repo)
+    cache_dir = str(download_root) if download_root else None
+
+    allow_patterns = [
+        "config.json",
+        "preprocessor_config.json",
+        "model.bin",
+        "tokenizer.json",
+        "vocabulary.*",
+    ]
+
+    # Check if already cached in Hugging Face Hub
+    try:
+        cached_path = huggingface_hub.snapshot_download(
+            repo_id,
+            allow_patterns=allow_patterns,
+            cache_dir=cache_dir,
+            local_files_only=True,
+        )
+        if progress_callback:
+            progress_callback(100.0, f"Mô hình '{model_size_or_repo}' đã có sẵn trong cache.")
+        return cached_path
+    except Exception:
+        pass
+
+    if progress_callback:
+        progress_callback(0.0, f"Bắt đầu tải mô hình '{model_size_or_repo}' ({repo_id})...")
+
+    class DownloadProgressTracker(tqdm):
+        def update(self, n=1):
+            super().update(n)
+            if self.total and self.total > 0 and progress_callback:
+                pct = min(100.0, (self.n / self.total) * 100.0)
+                dl_mb = self.n / (1024 * 1024)
+                tot_mb = self.total / (1024 * 1024)
+                fname = self.desc or "model.bin"
+                progress_callback(
+                    pct,
+                    f"Đang tải {model_size_or_repo} [{fname}]: {pct:.1f}% ({dl_mb:.1f}MB/{tot_mb:.1f}MB)",
+                )
+
+    downloaded_path = huggingface_hub.snapshot_download(
+        repo_id,
+        allow_patterns=allow_patterns,
+        cache_dir=cache_dir,
+        tqdm_class=DownloadProgressTracker,
+    )
+
+    if progress_callback:
+        progress_callback(100.0, f"Đã tải hoàn tất mô hình '{model_size_or_repo}'.")
+
+    return downloaded_path
+
+
 class Transcriber:
-    """Wrapper around faster-whisper with automatic optimizations."""
+    """Wrapper around faster-whisper with automatic optimizations and live download tracking."""
 
     def __init__(
         self,
@@ -118,6 +201,7 @@ class Transcriber:
         compute_type: str = "int8",
         cpu_threads: int = 0,
         download_root: Optional[str | Path] = None,
+        download_progress_callback: Optional[Callable[[float, str], None]] = None,
     ) -> None:
         self.model_size = model_size
         detected_device, detected_compute = detect_optimal_device_and_compute()
@@ -126,30 +210,32 @@ class Transcriber:
         target_compute = detected_compute if compute_type == "auto" else compute_type
 
         threads = cpu_threads or max(1, os.cpu_count() or 4)
-        dl_root = str(download_root) if download_root else None
 
-        # Attempt initializing model on target device with seamless CPU fallback
+        # Download model with real-time percentage before loading
+        model_path = download_model_with_progress(
+            self.model_size,
+            download_root=download_root,
+            progress_callback=download_progress_callback,
+        )
+
         try:
             self.model = WhisperModel(
-                model_size_or_path=self.model_size,
+                model_size_or_path=model_path,
                 device=target_device,
                 compute_type=target_compute,
                 cpu_threads=threads,
-                download_root=dl_root,
             )
             self.device = target_device
             self.compute_type = target_compute
         except Exception as e:
             if target_device == "cuda":
-                # CUDA init failed (e.g. missing driver / dll) -> fallback to CPU int8
                 self.device = "cpu"
                 self.compute_type = "int8"
                 self.model = WhisperModel(
-                    model_size_or_path=self.model_size,
+                    model_size_or_path=model_path,
                     device=self.device,
                     compute_type=self.compute_type,
                     cpu_threads=threads,
-                    download_root=dl_root,
                 )
             else:
                 raise e

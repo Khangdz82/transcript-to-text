@@ -18,10 +18,12 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from .audio import prepare_input
+from .audio import fetch_youtube_captions, is_url, prepare_input
 from .engine import (
     AVAILABLE_MODELS,
+    Segment,
     Transcriber,
+    TranscriptionResult,
     detect_optimal_device_and_compute,
 )
 from .exporters import SUPPORTED_FORMATS, export_result
@@ -71,7 +73,7 @@ def main(ctx: click.Context) -> None:
     type=click.Choice(AVAILABLE_MODELS, case_sensitive=False),
     default="base",
     show_default=True,
-    help="Whisper model size. Recommended: 'base' for speed, 'large-v3-turbo' for best accuracy.",
+    help="Whisper model size. Recommended: 'large-v3-turbo' for best accuracy.",
 )
 @click.option(
     "-l",
@@ -123,6 +125,18 @@ def main(ctx: click.Context) -> None:
     default=False,
     help="Include timestamps inside the exported .txt file.",
 )
+@click.option(
+    "--no-ai",
+    is_flag=True,
+    default=False,
+    help="Only fetch existing YouTube captions without downloading or running AI model.",
+)
+@click.option(
+    "--prefer-youtube-captions/--force-ai",
+    default=True,
+    show_default=True,
+    help="Try downloading existing YouTube captions first before running AI model.",
+)
 def run_command(
     source: str,
     output_dir: str | None,
@@ -135,9 +149,10 @@ def run_command(
     word_timestamps: bool,
     initial_prompt: str | None,
     timestamps_in_txt: bool,
+    no_ai: bool,
+    prefer_youtube_captions: bool,
 ) -> None:
     """Transcribe audio/video source (file path or online URL)."""
-    # Parse requested formats
     if formats.lower() == "all":
         selected_formats = SUPPORTED_FORMATS
     else:
@@ -147,6 +162,47 @@ def run_command(
     target_out_dir.mkdir(parents=True, exist_ok=True)
 
     console.print(f"[bold green][*] Processing input:[/bold green] {source}")
+
+    # Check for direct YouTube captions without AI
+    if is_url(source) and (no_ai or prefer_youtube_captions):
+        console.print("[dim][*] Kiem tra phu de co san tren YouTube (khong can AI)...[/dim]")
+        yt_captions = fetch_youtube_captions(source, language=language, output_dir=target_out_dir)
+        if yt_captions is not None:
+            yt_title, yt_lang, yt_dur, yt_segs_raw = yt_captions
+            parsed_segs = [
+                Segment(
+                    id=s["id"],
+                    start=s["start"],
+                    end=s["end"],
+                    text=s["text"],
+                )
+                for s in yt_segs_raw
+            ]
+            full_text = " ".join(s.text for s in parsed_segs)
+            result = TranscriptionResult(
+                text=full_text,
+                language=yt_lang,
+                language_probability=1.0,
+                duration=round(yt_dur, 2),
+                segments=parsed_segs,
+                model_name="youtube-direct-captions (No AI)",
+            )
+            base_out_path = target_out_dir / yt_title
+            generated = export_result(
+                result=result,
+                output_base_path=base_out_path,
+                formats=selected_formats,
+                title=yt_title,
+                with_timestamps=timestamps_in_txt,
+            )
+
+            console.print("[bold green][*] Da trich xuat truc tiep phu de YouTube thanh cong (khong can Model AI)![/bold green]\n")
+            _print_summary(yt_title, result, "youtube-direct-captions (No AI)", generated)
+            return
+
+        if no_ai:
+            console.print("[bold red][!] Video nay khong co phu de san tren YouTube. Hay bo co --no-ai de dung Whisper AI.[/bold red]")
+            sys.exit(1)
 
     # Stage 1: Download / Audio Extraction
     with Progress(
@@ -172,14 +228,14 @@ def run_command(
             console.print(f"[bold red][!] Input error:[/bold red] {e}")
             sys.exit(1)
 
-    # Stage 2: Model Loading & Transcription
+    # Stage 2: Model Loading with Real-time Download Progress
     det_dev, det_comp = detect_optimal_device_and_compute()
     active_device = det_dev if device == "auto" else device
     active_compute = det_comp if compute_type == "auto" else compute_type
 
     console.print(
         f"[dim]Engine: model=[bold]{model}[/bold] | device=[bold]{active_device}[/bold] | "
-        f"precision=[bold]{active_compute}[/bold] | vad=[bold]{vad}[/bold][/dim]"
+        f"precision=[bold]{active_compute}[/bold] (Q4) | vad=[bold]{vad}[/bold][/dim]"
     )
 
     try:
@@ -190,13 +246,18 @@ def run_command(
             TimeElapsedColumn(),
             console=console,
         ) as progress:
-            load_task = progress.add_task("[yellow]Loading Whisper model...", total=None)
+            load_task = progress.add_task(f"[yellow]Kiem tra/tai model {model}...", total=100)
+
+            def _dl_hook(pct: float, msg: str) -> None:
+                progress.update(load_task, completed=pct, description=f"[yellow]{msg}")
+
             transcriber = Transcriber(
                 model_size=model,
                 device=device,
                 compute_type=compute_type,
+                download_progress_callback=_dl_hook,
             )
-            progress.update(load_task, completed=100, description="[green]Model loaded")
+            progress.update(load_task, completed=100, description=f"[green]Model {model} (Q4) ready")
 
             stt_task = progress.add_task("[cyan]Transcribing...", total=100)
 
@@ -236,7 +297,10 @@ def run_command(
         with_timestamps=timestamps_in_txt,
     )
 
-    # Result Summary Table
+    _print_summary(title, result, model, generated)
+
+
+def _print_summary(title: str, result: TranscriptionResult, model_used: str, generated: dict) -> None:
     table = Table(title="Transcription Summary", border_style="cyan")
     table.add_column("Property", style="bold white")
     table.add_column("Value", style="green")
@@ -245,7 +309,7 @@ def run_command(
     table.add_row("Detected Language", f"{result.language.upper()} ({result.language_probability:.1%})")
     table.add_row("Duration", f"{result.duration:.2f} seconds")
     table.add_row("Total Segments", str(len(result.segments)))
-    table.add_row("Model Used", model)
+    table.add_row("Model Used", model_used)
 
     console.print()
     console.print(table)
@@ -255,7 +319,6 @@ def run_command(
     for fmt, file_path in generated.items():
         console.print(f"  [cyan]* {fmt.upper()}:[/cyan] {file_path}")
 
-    # Preview first 3 segments
     if result.segments:
         console.print("\n[bold yellow]Preview (First segments):[/bold yellow]")
         for seg in result.segments[:3]:

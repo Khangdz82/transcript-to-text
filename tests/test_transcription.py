@@ -207,3 +207,33 @@ def test_ffmpeg_extract_video_audio(tmp_path: Path):
     extracted = extract_audio_to_wav(mp4_file, output_path=out_wav)
     assert extracted.exists()
     assert extracted.stat().st_size > 0
+
+
+def test_vtt_parsing():
+    from transcript_to_text.audio import parse_vtt
+    vtt_content = """WEBVTT
+
+00:00:01.000 --> 00:00:03.500
+Hello world
+
+00:00:03.500 --> 00:00:06.000
+Second line
+"""
+    segs = parse_vtt(vtt_content)
+    assert len(segs) == 2
+    assert segs[0]["text"] == "Hello world"
+    assert segs[0]["start"] == 1.0
+    assert segs[1]["text"] == "Second line"
+    assert segs[1]["end"] == 6.0
+
+
+def test_download_model_progress():
+    from transcript_to_text.engine import download_model_with_progress
+    recorded = []
+    def _hook(pct, msg):
+        recorded.append((pct, msg))
+
+    # Test resolution of cached model
+    path = download_model_with_progress("tiny", progress_callback=_hook)
+    assert Path(path).exists()
+    assert len(recorded) > 0

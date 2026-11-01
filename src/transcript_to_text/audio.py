@@ -1,4 +1,4 @@
-"""Audio extraction and online video download module."""
+"""Audio extraction, online video download, and direct caption fetching module."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import yt_dlp
@@ -38,6 +38,133 @@ def is_ffmpeg_installed() -> bool:
     return shutil.which("ffmpeg") is not None
 
 
+def parse_vtt(vtt_text: str) -> List[Dict[str, Any]]:
+    """Parse WebVTT subtitle content into structured segments."""
+    time_pat = re.compile(r"(\d+:\d+(?::\d+)?(?:\.\d+)?)\s*-->\s*(\d+:\d+(?::\d+)?(?:\.\d+)?)")
+
+    def _parse_time(s: str) -> float:
+        parts = s.strip().split(":")
+        if len(parts) == 3:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + float(parts[2])
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + float(parts[1])
+        return 0.0
+
+    lines = vtt_text.splitlines()
+    segments: List[Dict[str, Any]] = []
+    c_start, c_end = None, None
+    c_lines: List[str] = []
+    seg_id = 1
+
+    for line in lines:
+        line = line.strip()
+        m = time_pat.search(line)
+        if m:
+            if c_start is not None and c_lines:
+                clean_txt = " ".join(c_lines).strip()
+                if clean_txt:
+                    segments.append({
+                        "id": seg_id,
+                        "start": round(c_start, 3),
+                        "end": round(c_end, 3),
+                        "text": clean_txt,
+                    })
+                    seg_id += 1
+                c_lines = []
+            c_start = _parse_time(m.group(1))
+            c_end = _parse_time(m.group(2))
+        elif c_start is not None and line and not line.isdigit():
+            clean = re.sub(r"<[^>]+>", "", line).strip()
+            if clean and (not c_lines or clean != c_lines[-1]):
+                c_lines.append(clean)
+
+    if c_start is not None and c_lines:
+        clean_txt = " ".join(c_lines).strip()
+        if clean_txt:
+            segments.append({
+                "id": seg_id,
+                "start": round(c_start, 3),
+                "end": round(c_end, 3),
+                "text": clean_txt,
+            })
+
+    return segments
+
+
+def fetch_youtube_captions(
+    url: str,
+    language: Optional[str] = None,
+    output_dir: Optional[str | Path] = None,
+) -> Optional[Tuple[str, str, float, List[Dict[str, Any]]]]:
+    """Attempt to download existing YouTube manual or auto-generated captions without AI.
+
+    Returns:
+        Tuple of (title, detected_language, duration, segments_list) or None
+    """
+    clean_url = str(url).strip()
+    if not is_url(clean_url):
+        return None
+
+    target_dir = Path(output_dir or tempfile.gettempdir()) / "transcript_to_text_yt_subs"
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    langs = []
+    if language and language.lower() != "auto":
+        langs.extend([language, f"{language}-.*"])
+    langs.extend(["vi", "vi-VN", "en", "en-US", "en-GB"])
+
+    ydl_opts = {
+        "skip_download": True,
+        "writesubtitles": True,
+        "writeautomaticsub": True,
+        "subtitleslangs": langs,
+        "subtitlesformat": "vtt",
+        "outtmpl": str(target_dir / "%(id)s.%(ext)s"),
+        "quiet": True,
+        "no_warnings": True,
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(clean_url, download=True)
+            video_id = info.get("id", "")
+            title = info.get("title", "YouTube_Video")
+            duration = float(info.get("duration") or 0.0)
+
+            clean_title = re.sub(r'[\\/*?:"<>|]', "_", title)
+            vtt_files = list(target_dir.glob(f"{video_id}.*.vtt"))
+            if not vtt_files:
+                return None
+
+            selected_vtt = vtt_files[0]
+            if language:
+                for vf in vtt_files:
+                    if f".{language}." in vf.name.lower():
+                        selected_vtt = vf
+                        break
+
+            parts = selected_vtt.name.split(".")
+            det_lang = parts[-2] if len(parts) >= 3 else (language or "en")
+
+            vtt_content = selected_vtt.read_text(encoding="utf-8", errors="replace")
+            segments = parse_vtt(vtt_content)
+
+            try:
+                selected_vtt.unlink()
+            except Exception:
+                pass
+
+            if not segments:
+                return None
+
+            if duration == 0.0 and segments:
+                duration = segments[-1]["end"]
+
+            return clean_title, det_lang, duration, segments
+    except Exception:
+        return None
+
+
 def download_from_url(
     url: str,
     output_dir: Optional[str | Path] = None,
@@ -62,7 +189,7 @@ def download_from_url(
             downloaded = d.get("downloaded_bytes") or 0
             percent = (downloaded / total * 100) if total > 0 else 0.0
             eta = d.get("eta") or 0
-            progress_callback(percent, f"Downloading: {percent:.1f}% (ETA {eta}s)")
+            progress_callback(percent, f"Downloading audio: {percent:.1f}% (ETA {eta}s)")
 
     ydl_opts = {
         "format": "bestaudio/best",
@@ -82,10 +209,8 @@ def download_from_url(
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         title = info.get("title", "Online_Video")
-        # Sanitize title for filename usage if needed
         clean_title = re.sub(r'[\\/*?:"<>|]', "_", title)
 
-        # Expected path
         if is_ffmpeg_installed():
             file_path = target_dir / f"{info['id']}.wav"
         else:
@@ -93,7 +218,6 @@ def download_from_url(
             file_path = target_dir / f"{info['id']}.{ext}"
 
         if not file_path.exists():
-            # Fallback search matching id
             matches = list(target_dir.glob(f"{info['id']}.*"))
             if matches:
                 file_path = matches[0]
@@ -122,7 +246,6 @@ def extract_audio_to_wav(
         dst.parent.mkdir(parents=True, exist_ok=True)
 
     if not is_ffmpeg_installed():
-        # Without ffmpeg, return original path if it's already an audio file
         return src
 
     cmd = [
@@ -148,7 +271,6 @@ def extract_audio_to_wav(
         check=False,
     )
     if result.returncode != 0:
-        # If ffmpeg failed, fallback to original if readable
         return src
 
     return dst
@@ -178,12 +300,7 @@ def prepare_input(
         raise FileNotFoundError(f"File not found: {local_path}")
 
     ext = local_path.suffix.lower()
-    if ext not in SUPPORTED_EXTENSIONS:
-        # Warning/allow anyway since ffmpeg/pyav might still support it
-        pass
-
     title = local_path.stem
-    # If video or non-16k wav, extract to 16k wav for faster/stable processing
     if ext in SUPPORTED_VIDEO_EXTENSIONS and is_ffmpeg_installed():
         wav_path = extract_audio_to_wav(local_path)
         return wav_path, title, True

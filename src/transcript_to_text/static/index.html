@@ -384,6 +384,10 @@
           <label for="video-url">Nhập đường link Video (YouTube, Vimeo, direct link):</label>
           <input type="text" id="video-url" placeholder="https://www.youtube.com/watch?v=..." />
         </div>
+        <label class="checkbox-group" style="margin-top: 6px; margin-bottom: 12px;">
+          <input type="checkbox" id="prefer-yt-subs" checked />
+          <span>Ưu tiên lấy phụ đề có sẵn trên YouTube (Không cần Model AI, hoàn tất tức thì 1 giây)</span>
+        </label>
       </div>
 
       <!-- Tab File -->
@@ -547,7 +551,8 @@
           if (!url) {
             throw new Error('Vui lòng nhập đường link video!');
           }
-          document.getElementById('status-text').innerText = 'Đang tải âm thanh từ URL và bóc tách transcript...';
+          const preferYtSubs = document.getElementById('prefer-yt-subs').checked;
+          document.getElementById('status-text').innerText = 'Đang kiểm tra phụ đề YouTube hoặc tải âm thanh và bóc tách...';
 
           response = await fetch('/api/transcribe-url', {
             method: 'POST',
@@ -557,7 +562,8 @@
               model: model,
               language: language === 'auto' ? null : language,
               vad: vad,
-              word_timestamps: wordTimestamps
+              word_timestamps: wordTimestamps,
+              prefer_youtube_captions: preferYtSubs
             })
           });
         } else {

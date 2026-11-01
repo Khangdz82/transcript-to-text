@@ -12,9 +12,28 @@ Dự án đi kèm 2 file `.bat` để người dùng không rành lập trình c
 
 - **`run_app.bat`**: 
   - **Cách 1:** Kéo thả trực tiếp file video/audio bất kỳ vào biểu tượng `run_app.bat` để tự động bóc tách.
-  - **Cách 2:** Nhấp đúp chuột để mở giao diện dòng lệnh, dán link YouTube hoặc đường dẫn file và chọn model AI theo menu số.
+  - **Cách 2:** Nhấp đúp chuột để mở giao diện dòng lệnh, dán link YouTube hoặc đường dẫn file và chọn model AI (hoặc bấm `0` để lấy phụ đề YouTube không cần AI).
 - **`run_web.bat`**: 
   - Nhấp đúp chuột để khởi động server Web UI cục bộ và tự động mở trình duyệt web tại địa chỉ `http://127.0.0.1:8000`.
+
+---
+
+## ⚡ Bóc tách YouTube KHÔNG CẦN Model AI (Tốc độ 1 giây)
+
+Đối với video YouTube, bạn **không bắt buộc phải dùng model AI**! 
+Hệ thống tích hợp tính năng tự động trích xuất phụ đề có sẵn (bao gồm cả manual subtitles do tác giả tải lên và auto-generated captions do YouTube tạo sẵn):
+- **Tốc độ tức thì:** 1-2 giây hoàn tất, không phải tải audio, không tốn RAM/VRAM và không cần tải mô hình AI.
+- **Tự động chuyển tiếp (Fallback):** Nếu video YouTube không có phụ đề sẵn, hệ thống sẽ tự động dùng Faster-Whisper AI để nghe và bóc tách.
+- **Lệnh thực hiện:** `ttt "<link-youtube>" --no-ai` hoặc chọn mục `[0]` trong `run_app.bat`.
+
+---
+
+## 📥 Thanh tiến trình tải Model AI thời gian thực (Real-time %)
+
+Khi tải mô hình Whisper lần đầu từ Hugging Face:
+- Hệ thống hiển thị trực quan tên mô hình đang tải (ví dụ: `large-v3-turbo`).
+- Hiển thị phần trăm hoàn thành theo thời gian thực: `45.2% (365.1MB / 809.0MB)`.
+- Khi mô hình đã tải xong 1 lần, các lần chạy sau sẽ nhận diện cache cục bộ ngay lập tức mà không tải lại.
 
 ---
 

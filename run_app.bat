@@ -32,6 +32,7 @@ if "%INPUT%"=="" (
 
 echo.
 echo Chon Model AI (luon chay che do Q4 INT8 tiet kiem RAM/VRAM):
+echo   [0] Khong dung AI  (Chi lay phu de co san tren YouTube, cuc nhanh 1s)
 echo   [1] large-v3-turbo (Khuyen dung: Sieu chuan SOTA, nhanh, ~810MB, RAM 3-4GB) [Mac dinh]
 echo   [2] small          (Chuan tot, can bang, ~250MB, RAM 2GB)
 echo   [3] medium         (Rat chuan, phuc tap, ~770MB, RAM 4GB)
@@ -39,7 +40,14 @@ echo   [4] base           (Nhe, nhanh, hoi thoai co ban, ~75MB, RAM 1GB)
 echo   [5] large-v3       (Chinh xac toi da, da ngon ngu, ~1.5GB, RAM 6-8GB)
 echo   [6] tiny           (Sieu toc, test nhanh, ~40MB, RAM 500MB)
 echo.
-set /p M_CHOICE=">> Chon model [1-6] (Nhan Enter de chon 1): "
+set /p M_CHOICE=">> Chon [0-6] (Nhan Enter de chon 1): "
+
+if "%M_CHOICE%"=="0" (
+    echo.
+    echo [*] Dang lay truc tiep phu de YouTube khong can Model AI...
+    python -m transcript_to_text.cli run "%INPUT%" --no-ai -f all
+    goto end
+)
 
 set MODEL=large-v3-turbo
 if "%M_CHOICE%"=="2" set MODEL=small
